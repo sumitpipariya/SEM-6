@@ -1,0 +1,81 @@
+Create DATABASE SMMS_DATABASE;
+
+CREATE TABLE User (
+    UserID INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(100) UNIQUE NOT NULL,
+    Password VARCHAR(255) NOT NULL,
+    Role ENUM('ADMIN', 'STAFF', 'STUDENT') NOT NULL,
+    Created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Student (
+    StudentID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT UNIQUE,
+    StudentName VARCHAR(100) NOT NULL,
+    EnrollmentNo VARCHAR(50) UNIQUE NOT NULL,
+    MobileNo VARCHAR(15),
+    EmailAddress VARCHAR(100),
+    Description TEXT,
+    Created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (UserID) REFERENCES User(UserID)
+);
+
+
+CREATE TABLE Staff (
+    StaffID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT UNIQUE,
+    StaffName VARCHAR(100) NOT NULL,
+    MobileNo VARCHAR(15),
+    EmailAddress VARCHAR(100),
+    Description TEXT,
+    Created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (UserID) REFERENCES User(UserID)
+);
+
+
+
+CREATE TABLE StudentMentor (
+    StudentMentorID INT AUTO_INCREMENT PRIMARY KEY,
+    StudentID INT NOT NULL,
+    StaffID INT NOT NULL,
+    FromDate DATE NOT NULL,
+    ToDate DATE DEFAULT NULL,
+    Description TEXT,
+    Created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (StudentID) REFERENCES Student(StudentID),
+    FOREIGN KEY (StaffID) REFERENCES Staff(StaffID)
+);
+
+
+CREATE TABLE StudentMentoring (
+    StudentMentoringID INT AUTO_INCREMENT PRIMARY KEY,
+    StudentMentorID INT NOT NULL,
+    DateOfMentoring DATE,
+    ScheduledMeetingDate DATE,
+    NextMentoringDate DATE,
+    IssuesDiscussed TEXT,
+    MentoringMeetingAgenda TEXT,
+    AttendanceStatus VARCHAR(20),
+    AbsentRemarks TEXT,
+    IsParentPresent BOOLEAN DEFAULT FALSE,
+    ParentName VARCHAR(100),
+    ParentMobileNo VARCHAR(15),
+    StudentsOpinion TEXT,
+    ParentsOpinion TEXT,
+    StaffOpinion TEXT,
+    StressLevel VARCHAR(20),
+    LearnerType VARCHAR(30),
+    MentoringDocument VARCHAR(255),
+    Description TEXT,
+    Created DATETIME DEFAULT CURRENT_TIMESTAMP,
+    Modified DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (StudentMentorID) REFERENCES StudentMentor(StudentMentorID)
+);
