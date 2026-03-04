@@ -5,7 +5,7 @@ import styles from '../admin.module.css';
 
 export default function AdminDashboard() {
   const router = useRouter();
-  
+
   // States aligned with Database Schema counts
   const [counts, setCounts] = useState({
     mentors: 0,   // From Staff table
@@ -17,23 +17,20 @@ export default function AdminDashboard() {
   const [recentMappings, setRecentMappings] = useState<any[]>([]);
 
   useEffect(() => {
-    // Sync with local persistence keys
-    const staff = JSON.parse(localStorage.getItem('STAFF_STORAGE') || '[]');
-    const students = JSON.parse(localStorage.getItem('STUDENT_STORAGE') || '[]');
-    const assigns = JSON.parse(localStorage.getItem('ASSIGNMENT_STORAGE') || '[]');
-    const sessions = JSON.parse(localStorage.getItem('MENTORING_SESSIONS') || '[]');
-
-    // Requirement: High Stress Alerts [cite: 11, 49]
-    const highStressCount = sessions.filter((s: any) => s.StressLevel === 'High').length;
-
-    setCounts({
-      mentors: staff.length,
-      students: students.length,
-      mappings: assigns.length,
-      alerts: highStressCount
-    });
-
-    setRecentMappings(assigns.slice(-5).reverse());
+    fetch('/api/admin/dashboard')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setCounts({
+            mentors: data.mentors,
+            students: data.students,
+            mappings: data.mappings,
+            alerts: data.alerts
+          });
+          setRecentMappings(data.recentMappings);
+        }
+      })
+      .catch(err => console.error(err));
   }, []);
 
   const stats = [
@@ -48,7 +45,6 @@ export default function AdminDashboard() {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
         <div>
           <h2 className={styles.pageTitle}>System Overview</h2>
-          <p className={styles.pageSubtitle}>Monitor mentorship performance (SMMS Platform)</p>
         </div>
         <button className={styles.btnAdminPrimary} onClick={() => router.push('/admin/reports')}>
           <span className="material-symbols-rounded align-middle me-2">analytics</span>
@@ -123,11 +119,11 @@ export default function AdminDashboard() {
         <div className="col-lg-4">
           <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: '24px', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
             <h5 className="fw-bold mb-4 text-white d-flex align-items-center">
-               <span className="material-symbols-rounded me-2">admin_panel_settings</span>
-               Management Hub
+              <span className="material-symbols-rounded me-2">admin_panel_settings</span>
+              Management Hub
             </h5>
             <div className="d-grid gap-3">
-              <button className="btn w-100 text-start p-3 rounded-4 border-0 d-flex align-items-center gap-3" 
+              <button className="btn w-100 text-start p-3 rounded-4 border-0 d-flex align-items-center gap-3"
                 style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => router.push('/admin/users/staff')}>
                 <div className="p-2 bg-info bg-opacity-10 rounded-3 text-info"><span className="material-symbols-rounded">person_add</span></div>
                 <div>
@@ -135,8 +131,8 @@ export default function AdminDashboard() {
                   <div className="extra-small-text text-white-50">Manage Faculty </div>
                 </div>
               </button>
-              
-              <button className="btn w-100 text-start p-3 rounded-4 border-0 d-flex align-items-center gap-3" 
+
+              <button className="btn w-100 text-start p-3 rounded-4 border-0 d-flex align-items-center gap-3"
                 style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => router.push('/admin/users/students')}>
                 <div className="p-2 bg-success bg-opacity-10 rounded-3 text-success"><span className="material-symbols-rounded">school</span></div>
                 <div>
@@ -145,8 +141,8 @@ export default function AdminDashboard() {
                 </div>
               </button>
 
-              <button className="btn w-100 text-start p-3 rounded-4 border-0 d-flex align-items-center gap-3" 
-                style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.2) 100%)', border: '1px solid rgba(255,255,255,0.1)' }} 
+              <button className="btn w-100 text-start p-3 rounded-4 border-0 d-flex align-items-center gap-3"
+                style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.2) 100%)', border: '1px solid rgba(255,255,255,0.1)' }}
                 onClick={() => router.push('/admin/users/assign')}>
                 <div className="p-2 bg-primary rounded-3 text-white"><span className="material-symbols-rounded">link</span></div>
                 <div>

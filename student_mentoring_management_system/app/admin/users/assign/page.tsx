@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 
 export default function MentorAssignmentPage() {
   const router = useRouter();
-  
+
   // Data States
   const [assignments, setAssignments] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -18,57 +18,61 @@ export default function MentorAssignmentPage() {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    // 1. Load Staff and Students to populate dropdowns
-    const savedStaff = localStorage.getItem('STAFF_STORAGE');
-    const savedStudents = localStorage.getItem('STUDENT_STORAGE');
-    const savedAssigns = localStorage.getItem('ASSIGNMENT_STORAGE');
+    // 1. Fetch Staff and Students to populate dropdowns
+    fetch('/api/admin/staff').then(res => res.json()).then(data => { if (!data.error) setStaffList(data) });
+    fetch('/api/admin/students').then(res => res.json()).then(data => { if (!data.error) setStudentList(data) });
 
-    if (savedStaff) setStaffList(JSON.parse(savedStaff));
-    if (savedStudents) setStudentList(JSON.parse(savedStudents));
-    
-    // 2. Load existing assignments or set defaults
-    if (savedAssigns) {
-      setAssignments(JSON.parse(savedAssigns));
-    } else {
-      const initial = [
-        { id: 1, StaffName: "Dr. Rajesh Kumar", StudentName: "John Doe", FromDate: "2026-01-01", ToDate: "2026-12-31", Description: "Primary Mentor" }
-      ];
-      setAssignments(initial);
-      localStorage.setItem('ASSIGNMENT_STORAGE', JSON.stringify(initial));
-    }
+    // 2. Load existing assignments
+    fetch('/api/admin/assignments').then(res => res.json()).then(data => { if (!data.error) setAssignments(data); });
   }, []);
 
-  const handleAssign = (e: React.FormEvent) => {
+  const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const staffObj = staffList.find(s => s.id.toString() === selectedStaff);
-    const studentObj = studentList.find(s => s.id.toString() === selectedStudent);
 
-    if (!staffObj || !studentObj) return alert("Please select both Mentor and Student");
+    if (!selectedStaff || !selectedStudent) return alert("Please select both Mentor and Student");
 
-    const newAssignment = {
-      id: Date.now(),
-      StaffName: staffObj.StaffName,
-      StudentName: studentObj.StudentName,
+    const payload = {
+      StaffID: selectedStaff,
+      StudentID: selectedStudent,
       FromDate: fromDate,
       ToDate: toDate || "Ongoing",
       Description: description
     };
 
-    const updated = [newAssignment, ...assignments];
-    setAssignments(updated);
-    localStorage.setItem('ASSIGNMENT_STORAGE', JSON.stringify(updated));
-    
-    // Reset Form
-    setSelectedStudent("");
-    setDescription("");
+    try {
+      const res = await fetch('/api/admin/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!data.error) {
+        setAssignments([data, ...assignments]);
+        // Reset Form
+        setSelectedStudent("");
+        setDescription("");
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to assign mentor.");
+    }
   };
 
-  const handleUnassign = (id: number) => {
-    if(confirm("Are you sure you want to revoke this mentorship assignment?")) {
-      const updated = assignments.filter(a => a.id !== id);
-      setAssignments(updated);
-      localStorage.setItem('ASSIGNMENT_STORAGE', JSON.stringify(updated));
+  const handleUnassign = async (id: number) => {
+    if (confirm("Are you sure you want to revoke this mentorship assignment?")) {
+      try {
+        const res = await fetch(`/api/admin/assignments/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          setAssignments(assignments.filter(a => a.id !== id));
+        } else {
+          alert('Failed to delete assignment');
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -76,7 +80,7 @@ export default function MentorAssignmentPage() {
     <div className="container-fluid py-4 animate-fade-in">
       <div className="mb-4">
         <h2 className="fw-black text-dark mb-1">Mentor-Mentee Mapping</h2>
-        <p className="text-secondary fw-medium">Establish relationships between Faculty and Students (Table: StudentMentor)</p>
+        <p className="text-secondary fw-medium">Establish relationships between Faculty and Students </p>
       </div>
 
       <div className="row g-4">
@@ -89,7 +93,7 @@ export default function MentorAssignmentPage() {
             <form onSubmit={handleAssign}>
               <div className="mb-3">
                 <label className="extra-small fw-black text-muted text-uppercase">Select Mentor (Staff)</label>
-                <select 
+                <select
                   className="form-select border-0 bg-light p-3 rounded-3 mt-1"
                   value={selectedStaff}
                   onChange={(e) => setSelectedStaff(e.target.value)}
@@ -102,7 +106,7 @@ export default function MentorAssignmentPage() {
 
               <div className="mb-3">
                 <label className="extra-small fw-black text-muted text-uppercase">Select Mentee (Student)</label>
-                <select 
+                <select
                   className="form-select border-0 bg-light p-3 rounded-3 mt-1"
                   value={selectedStudent}
                   onChange={(e) => setSelectedStudent(e.target.value)}
@@ -116,12 +120,12 @@ export default function MentorAssignmentPage() {
               <div className="row g-2 mb-3">
                 <div className="col-6">
                   <label className="extra-small fw-black text-muted text-uppercase">From Date</label>
-                  <input type="date" className="form-control border-0 bg-light p-3 rounded-3 mt-1" 
+                  <input type="date" className="form-control border-0 bg-light p-3 rounded-3 mt-1"
                     value={fromDate} onChange={(e) => setFromDate(e.target.value)} required />
                 </div>
                 <div className="col-6">
                   <label className="extra-small fw-black text-muted text-uppercase">To Date</label>
-                  <input type="date" className="form-control border-0 bg-light p-3 rounded-3 mt-1" 
+                  <input type="date" className="form-control border-0 bg-light p-3 rounded-3 mt-1"
                     value={toDate} onChange={(e) => setToDate(e.target.value)} />
                 </div>
               </div>
@@ -172,7 +176,7 @@ export default function MentorAssignmentPage() {
                         <div className="extra-small text-muted">to {assign.ToDate}</div>
                       </td>
                       <td className="pe-4 text-end">
-                        <button 
+                        <button
                           className="btn-action-delete"
                           onClick={() => handleUnassign(assign.id)}
                           title="Revoke Assignment"

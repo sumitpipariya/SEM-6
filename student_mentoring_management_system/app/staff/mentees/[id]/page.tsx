@@ -7,31 +7,62 @@ export default function MenteeDetail() {
     const router = useRouter();
     const params = useParams();
     const [mentee, setMentee] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const saved = JSON.parse(localStorage.getItem('custom_mentees') || '[]');
-        const combined = [...initialMentees, ...saved];
-        const found = combined.find((m: any) => m.id.toString() === params.id);
-        setMentee(found);
+        if (!params.id) return;
+
+        fetch(`/api/staff/mentees/${params.id}`)
+            .then(res => {
+                if (!res.ok) throw new Error('Student not found');
+                return res.json();
+            })
+            .then(data => {
+                setMentee(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to load mentee:", err);
+                setError(err.message);
+                setLoading(false);
+            });
     }, [params.id]);
 
-    if (!mentee) return (
-        <div className="vh-100 d-flex flex-column align-items-center justify-content-center">
-            <div className="spinner-border text-primary mb-3" role="status"></div>
-            <span className="text-muted fw-bold">Loading Profile...</span>
-        </div>
-    );
+    if (loading) {
+        return (
+            <div className="vh-100 d-flex flex-column align-items-center justify-content-center">
+                <div className="spinner-border text-primary mb-3" role="status"></div>
+                <span className="text-muted fw-bold">Loading Profile...</span>
+            </div>
+        );
+    }
+
+    if (error || !mentee) {
+        return (
+            <div className="vh-100 d-flex flex-column align-items-center justify-content-center">
+                <span className="material-symbols-rounded text-muted opacity-50 mb-3" style={{ fontSize: '3rem' }}>person_off</span>
+                <h5 className="fw-bold text-dark">Student Not Found</h5>
+                <p className="text-muted small">{error || 'Could not load student data.'}</p>
+                <button onClick={() => router.back()} className="btn btn-outline-primary rounded-pill px-4 fw-bold">
+                    Go Back
+                </button>
+            </div>
+        );
+    }
+
+    const { student, stats, mentoringHistory, assignment } = mentee;
 
     return (
-        <div className={`${styles.dashboardContainer} animate-fade-in`}>
+        <div className="animate-fade-in">
             <div className="container py-2">
                 {/* Back Button */}
-                <button 
-                    onClick={() => router.back()} 
+                <button
+                    onClick={() => router.back()}
                     className="btn btn-link text-decoration-none text-muted mb-4 p-0 d-flex align-items-center gap-2 hover-translate-x"
                     style={{ transition: 'transform 0.2s' }}
                 >
-                    <span className="material-symbols-rounded fs-5">arrow_back</span> 
+                    <span className="material-symbols-rounded fs-5">arrow_back</span>
                     <span className="fw-bold small text-uppercase ls-1">Back to Directory</span>
                 </button>
 
@@ -41,36 +72,25 @@ export default function MenteeDetail() {
                         <div className={`${styles.tableContainer} p-4 text-center h-100 shadow-premium`}>
                             <div className="position-relative d-inline-block mb-4">
                                 <div className={styles.premiumNameIcon} style={{ width: '100px', height: '100px', fontSize: '2.5rem' }}>
-                                    {mentee.name.charAt(0)}
+                                    {student.name.charAt(0)}
                                 </div>
-                                <span className="position-absolute bottom-0 end-0 bg-success border border-white border-3 rounded-circle p-2" title="Online"></span>
+                                <span className="position-absolute bottom-0 end-0 bg-success border border-white border-3 rounded-circle p-2" title="Active"></span>
                             </div>
-                            
-                            <h3 className="fw-black text-dark mb-1">{mentee.name}</h3>
+
+                            <h3 className="fw-black text-dark mb-1">{student.name}</h3>
                             <p className="text-muted small mb-4">
                                 <span className="badge bg-light text-dark border px-3 py-2 rounded-pill fw-bold">
-                                    {mentee.roll}
+                                    {student.enrollmentNo}
                                 </span>
                             </p>
 
-                            <div className="d-grid gap-3">
-                                <button className={styles.btnStaffPrimary}>
-                                    <span className="material-symbols-rounded me-2">mail</span>
-                                    Message Student
-                                </button>
-                                <button className={styles.viewActionBtn} style={{ justifyContent: 'center', display: 'flex', alignItems: 'center' }}>
-                                    <span className="material-symbols-rounded me-2">download</span>
-                                    Download Report
-                                </button>
-                            </div>
-
                             <hr className="my-4 opacity-50" />
-                            
+
                             <div className="text-start">
                                 <label className={styles.fieldLabel}>Email Address</label>
-                                <p className="fw-bold small mb-3">{mentee.email}</p>
-                                <label className={styles.fieldLabel}>Department</label>
-                                <p className="fw-bold small mb-0">{mentee.dept || 'Engineering'}</p>
+                                <p className="fw-bold small mb-3">{student.email}</p>
+                                <label className={styles.fieldLabel}>Phone</label>
+                                <p className="fw-bold small mb-3">{student.phone}</p>
                             </div>
                         </div>
                     </div>
@@ -80,9 +100,9 @@ export default function MenteeDetail() {
                         {/* Status Grid */}
                         <div className="row g-3 mb-4">
                             {[
-                                { label: 'Stress Level', value: mentee.stress, color: mentee.stress === 'High' ? 'text-danger' : 'text-success', icon: 'psychology' },
-                                { label: 'Attendance', value: '92%', color: 'text-dark', icon: 'event_available' },
-                                { label: 'Academic GPA', value: '3.8 / 4.0', color: 'text-dark', icon: 'auto_stories' }
+                                { label: 'Stress Level', value: stats.stressLevel, color: stats.stressLevel === 'High' ? 'text-danger' : 'text-success', icon: 'psychology' },
+                                { label: 'Attendance', value: `${stats.attendancePercentage}%`, color: 'text-dark', icon: 'event_available' },
+                                { label: 'Total Sessions', value: stats.totalSessions, color: 'text-dark', icon: 'auto_stories' }
                             ].map((item, idx) => (
                                 <div className="col-sm-4" key={idx}>
                                     <div className={`${styles.tableContainer} p-3 border-0 shadow-sm card-hover-up`}>
@@ -103,34 +123,36 @@ export default function MenteeDetail() {
                                     <span className="material-symbols-rounded text-primary">history</span>
                                     Mentoring History
                                 </h5>
-                                <button className={styles.viewActionBtn} style={{ fontSize: '0.75rem', padding: '6px 12px' }}>
-                                    + New Entry
-                                </button>
                             </div>
 
-                            <div className="position-relative ps-4 border-start border-2" style={{ borderColor: '#f1f5f9 !important' }}>
-                                {/* Entry 1 */}
-                                <div className="mb-5 position-relative">
-                                    <div className="position-absolute bg-primary rounded-circle shadow-primary-lg" 
-                                         style={{ width: '14px', height: '14px', left: '-32px', top: '5px', border: '3px solid white' }}></div>
-                                    <div className="d-flex justify-content-between align-items-start mb-1">
-                                        <h6 className="fw-bold text-dark mb-0">Academic Review Session</h6>
-                                        <small className="text-primary fw-bold bg-primary-soft px-2 py-1 rounded">12 Jan 2026</small>
-                                    </div>
-                                    <p className="small text-muted mb-0">Discussed project milestones and lab results. Student is on track and showing improved focus in data structures.</p>
+                            {mentoringHistory.length === 0 ? (
+                                <div className="text-center py-4">
+                                    <span className="material-symbols-rounded text-muted opacity-25" style={{ fontSize: '3rem' }}>history_toggle_off</span>
+                                    <p className="text-muted mt-2">No mentoring history found.</p>
                                 </div>
-
-                                {/* Entry 2 */}
-                                <div className="position-relative">
-                                    <div className="position-absolute bg-secondary rounded-circle" 
-                                         style={{ width: '14px', height: '14px', left: '-32px', top: '5px', border: '3px solid white' }}></div>
-                                    <div className="d-flex justify-content-between align-items-start mb-1">
-                                        <h6 className="fw-bold text-dark mb-0">Career Goal Setting</h6>
-                                        <small className="text-muted fw-bold bg-light px-2 py-1 rounded">05 Dec 2025</small>
-                                    </div>
-                                    <p className="small text-muted mb-0">Reviewed internship applications for Summer 2026. Advised on portfolio improvements and LinkedIn networking.</p>
+                            ) : (
+                                <div className="position-relative ps-4 border-start border-2" style={{ borderColor: '#f1f5f9 !important' }}>
+                                    {mentoringHistory.map((entry: any, idx: number) => (
+                                        <div className={`${idx < mentoringHistory.length - 1 ? 'mb-5' : ''} position-relative`} key={entry.id}>
+                                            <div
+                                                className={`position-absolute ${idx === 0 ? 'bg-primary' : 'bg-secondary'} rounded-circle ${idx === 0 ? 'shadow-primary-lg' : ''}`}
+                                                style={{ width: '14px', height: '14px', left: '-32px', top: '5px', border: '3px solid white' }}
+                                            ></div>
+                                            <div className="d-flex justify-content-between align-items-start mb-1">
+                                                <h6 className="fw-bold text-dark mb-0">{entry.agenda}</h6>
+                                                <small className={`fw-bold px-2 py-1 rounded ${idx === 0 ? 'text-primary bg-primary-soft' : 'text-muted bg-light'}`}>
+                                                    {entry.date ? new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                                                </small>
+                                            </div>
+                                            <p className="small text-muted mb-0">
+                                                {entry.issues || 'No details recorded.'}
+                                                {entry.stressLevel !== 'N/A' && <span className="ms-2 badge bg-light text-muted">Stress: {entry.stressLevel}</span>}
+                                                {entry.status !== 'Pending' && <span className="ms-2 badge bg-light text-muted">{entry.status}</span>}
+                                            </p>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -154,8 +176,3 @@ export default function MenteeDetail() {
         </div>
     );
 }
-
-const initialMentees = [
-    { id: 101, name: "John Doe", roll: "21CS001", email: "john@univ.edu", stress: "Low", type: "Fast Learner", dept: "CS Eng" },
-    { id: 102, name: "Jane Smith", roll: "21CS015", email: "jane@univ.edu", stress: "High", type: "Average", dept: "CS Eng" },
-];

@@ -12,13 +12,37 @@ const adminMenuItems = [
   { name: 'Reports', icon: 'monitoring', href: '/admin/reports' },
 ];
 
+interface AdminData {
+  username: string;
+  role: string;
+  userId: number;
+  totalMentors: number;
+  totalStudents: number;
+  totalAssignments: number;
+}
+
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
+  adminData: AdminData;
 }
 
-export default function AdminSidebar({ isCollapsed, onToggle }: SidebarProps) {
+export default function AdminSidebar({ isCollapsed, onToggle, adminData }: SidebarProps) {
   const pathname = usePathname();
+
+  const initials = adminData.username
+    ? adminData.username.slice(0, 2).toUpperCase()
+    : 'AD';
+
+  const handleLogout = () => {
+    fetch('/api/auth/logout', { method: 'POST' })
+      .then(() => {
+        window.location.href = '/auth/login';
+      })
+      .catch(() => {
+        window.location.href = '/auth/login';
+      });
+  };
 
   return (
     <div className="h-100 d-flex flex-column bg-white">
@@ -34,8 +58,8 @@ export default function AdminSidebar({ isCollapsed, onToggle }: SidebarProps) {
             </span>
           </div>
         )}
-        <button 
-          onClick={onToggle} 
+        <button
+          onClick={onToggle}
           className="btn btn-light btn-sm rounded-circle border-0 shadow-sm"
         >
           <span className="material-symbols-rounded fs-5">
@@ -52,13 +76,13 @@ export default function AdminSidebar({ isCollapsed, onToggle }: SidebarProps) {
           </label>
         )}
         <hr className="sidebar-divider mx-3" />
-        
+
         <div className="nav flex-column gap-2 mt-3">
           {adminMenuItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link key={item.name} href={item.href} className="text-decoration-none">
-                <div 
+                <div
                   className={`sidebar-link ${isActive ? 'active' : ''} ${isCollapsed ? 'justify-content-center px-0' : 'px-3'}`}
                 >
                   <span className="material-symbols-rounded fs-5">{item.icon}</span>
@@ -72,21 +96,33 @@ export default function AdminSidebar({ isCollapsed, onToggle }: SidebarProps) {
       </nav>
 
       {/* Admin Profile */}
-      <div className="p-3 mt-auto border-top bg-light-soft">
-        <div className="d-flex align-items-center">
-          <div 
-            className="avatar-sm bg-dark text-white rounded-circle fw-bold d-flex align-items-center justify-content-center shadow-sm" 
-            style={{ width: '40px', height: '40px', minWidth: '40px' }}
-          >
-            AD
-          </div>
-          {!isCollapsed && (
-            <div className="ms-3 overflow-hidden">
-              <p className="mb-0 fw-bold text-dark small text-truncate">System Admin</p>
-              <p className="mb-0 extra-small-text text-muted">ID: #001</p>
+      <div className="p-3 mt-auto border-top bg-light-soft d-flex flex-column gap-3">
+        <Link href="/admin/profile" className="text-decoration-none">
+          <div className="d-flex align-items-center" style={{ cursor: 'pointer' }}>
+            <div
+              className="avatar-sm bg-dark text-white rounded-circle fw-bold d-flex align-items-center justify-content-center shadow-sm"
+              style={{ width: '40px', height: '40px', minWidth: '40px' }}
+            >
+              {initials}
             </div>
-          )}
-        </div>
+            {!isCollapsed && (
+              <div className="ms-3 overflow-hidden">
+                <p className="mb-0 fw-bold text-dark small text-truncate">{adminData.username}</p>
+                <p className="mb-0 extra-small-text text-muted">ID: #{adminData.userId}</p>
+              </div>
+            )}
+          </div>
+        </Link>
+
+        {/* Logout Button */}
+        <button
+          className="btn btn-outline-danger w-100 rounded-pill d-flex align-items-center justify-content-center fw-bold shadow-sm mb-2"
+          onClick={handleLogout}
+          title="Sign Out"
+        >
+          <span className="material-symbols-rounded">logout</span>
+          {!isCollapsed && <span className="ms-2">Logout</span>}
+        </button>
       </div>
     </div>
   );

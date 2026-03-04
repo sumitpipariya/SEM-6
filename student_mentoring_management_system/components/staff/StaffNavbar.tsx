@@ -6,8 +6,20 @@ import { useRouter } from 'next/navigation';
 export default function StaffNavbar({ sidebarWidth }: { sidebarWidth: string }) {
   // 1. Logic to handle dropdown open/close state
   const [isOpen, setIsOpen] = useState(false);
+  const [staffName, setStaffName] = useState("Loading...");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/staff/layout')
+      .then(res => res.json())
+      .then(data => {
+        if (data.staffName) {
+          setStaffName(data.staffName);
+        }
+      })
+      .catch(err => console.error("Failed to fetch staff name:", err));
+  }, []);
 
   // 2. Logic to close dropdown when clicking outside
   useEffect(() => {
@@ -21,16 +33,16 @@ export default function StaffNavbar({ sidebarWidth }: { sidebarWidth: string }) 
   }, []);
 
   return (
-    <nav 
+    <nav
       className="navbar navbar-expand-lg bg-white border-bottom px-4"
-      style={{ 
-        height: '70px', 
-        position: 'fixed', 
-        right: 0, 
-        left: sidebarWidth, 
-        top: 0, 
+      style={{
+        height: '70px',
+        position: 'fixed',
+        right: 0,
+        left: sidebarWidth,
+        top: 0,
         zIndex: 1030,
-        transition: 'left 0.3s ease' 
+        transition: 'left 0.3s ease'
       }}
     >
       <div className="container-fluid">
@@ -41,22 +53,22 @@ export default function StaffNavbar({ sidebarWidth }: { sidebarWidth: string }) 
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-3">
-          
-        
+
+
           {/* User Profile Dropdown Container */}
           <div className="position-relative" ref={dropdownRef}>
-            <div 
-              className="d-flex align-items-center gap-2 px-2 ps-3 ms-2" 
+            <div
+              className="d-flex align-items-center gap-2 px-2 ps-3 ms-2"
               onClick={() => setIsOpen(!isOpen)} // 3. Manual toggle
               style={{ cursor: 'pointer', userSelect: 'none' }}
             >
               <div className="text-end d-none d-lg-block">
-                <p className="mb-0 fw-bold text-dark" style={{ fontSize: '0.8rem', lineHeight: '1.2' }}>Dr. Amit Patel</p>
+                <p className="mb-0 fw-bold text-dark" style={{ fontSize: '0.8rem', lineHeight: '1.2' }}>{staffName}</p>
                 <p className="mb-0 text-success fw-bold" style={{ fontSize: '0.65rem', opacity: '0.8' }}>● Active</p>
               </div>
-              
-              <div 
-                className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm" 
+
+              <div
+                className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm"
                 style={{ width: '40px', height: '40px' }}
               >
                 <span className="material-symbols-rounded">person</span>
@@ -65,15 +77,15 @@ export default function StaffNavbar({ sidebarWidth }: { sidebarWidth: string }) 
 
             {/* 4. Conditional Rendering based on State */}
             {isOpen && (
-              <ul 
+              <ul
                 className="dropdown-menu dropdown-menu-end border-0 shadow-lg p-2 rounded-4 show" // Added 'show' class
-                style={{ 
-                    display: 'block', // Force display
-                    position: 'absolute', 
-                    right: 0, 
-                    top: '100%', 
-                    marginTop: '15px',
-                    minWidth: '220px' 
+                style={{
+                  display: 'block', // Force display
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  marginTop: '15px',
+                  minWidth: '220px'
                 }}
               >
                 <li>
@@ -87,15 +99,9 @@ export default function StaffNavbar({ sidebarWidth }: { sidebarWidth: string }) 
                     <span className="fw-bold small">My Profile</span>
                   </Link>
                 </li>
-                <li>
-                  <Link href="/staff/settings" onClick={() => setIsOpen(false)} className="dropdown-item d-flex align-items-center gap-3 py-2 rounded-3">
-                    <span className="material-symbols-rounded text-secondary fs-5">settings</span>
-                    <span className="fw-bold small">Account Settings</span>
-                  </Link>
-                </li>
                 <li><hr className="dropdown-divider opacity-50" /></li>
                 <li>
-                  <Link href="/auth/login" className="dropdown-item d-flex align-items-center gap-3 py-2 rounded-3 text-danger">
+                  <Link href="/api/auth/logout" className="dropdown-item d-flex align-items-center gap-3 py-2 rounded-3 text-danger">
                     <span className="material-symbols-rounded fs-5">logout</span>
                     <span className="fw-bold small">Sign Out</span>
                   </Link>

@@ -1,35 +1,26 @@
 "use client";
-import React from 'react';
-
-// Dummy Data mapped to your SQL Schema (Staff + StudentMentoring)
-const MENTOR_DATA = {
-  // Staff Table Fields
-  staff: {
-    name: "Dr. Rajesh Kumar",
-    role: "Senior Professor",
-    email: "rajesh.kumar@university.edu",
-    phone: "+91 98765 43210",
-    dept: "Computer Science & Engineering",
-    description: "Specializes in AI and Student Career Counseling with 15+ years of academic experience.",
-  },
-  // StudentMentor Table Fields
-  assignment: {
-    fromDate: "July 15, 2024",
-    status: "Active"
-  },
-  // StudentMentoring Table Fields (Latest Session)
-  latestSession: {
-    date: "Dec 10, 2025",
-    stressLevel: "Moderate",
-    learnerType: "Kinesthetic",
-    attendance: "Present",
-    agenda: "Semester Progress Review & Project Milestones",
-    issues: "Discussed time management for final year project and documentation standards.",
-    staffOpinion: "The student is showing great interest in technical labs but needs to focus more on theoretical documentation."
-  }
-};
+import React, { useState, useEffect } from 'react';
 
 export default function StudentMentorPage() {
+  const [mentorData, setMentorData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/student/mentor')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setMentorData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div className="p-5 text-center">Loading mentor details...</div>;
+  if (!mentorData) return <div className="p-5 text-center text-danger">Mentor details not found.</div>;
+
   return (
     <div className="container-fluid py-4 animate-fade-in">
       {/* Page Header */}
@@ -46,16 +37,18 @@ export default function StudentMentorPage() {
           <div className="card-mentor border-0 shadow-sm overflow-hidden h-100 bg-white">
             <div className="mentor-cover-gradient"></div>
             <div className="p-4 pt-0 text-center">
-              <div className="mentor-avatar-xl shadow-lg border border-5 border-white mx-auto mb-3">RK</div>
-              <h4 className="fw-bold text-dark mb-1">{MENTOR_DATA.staff.name}</h4>
-              <p className="text-muted small mb-3">{MENTOR_DATA.staff.role} • {MENTOR_DATA.staff.dept}</p>
-              
+              <div className="mentor-avatar-xl shadow-lg border border-5 border-white mx-auto mb-3">
+                {mentorData.staff.name.split(' ').filter((n: string) => !n.includes('.')).map((n: string) => n[0]).slice(0, 2).join('')}
+              </div>
+              <h4 className="fw-bold text-dark mb-1">{mentorData.staff.name}</h4>
+              <p className="text-muted small mb-3">{mentorData.staff.role} • {mentorData.staff.dept}</p>
+
               <div className="d-flex justify-content-center gap-2 mb-4">
-                <a href={`mailto:${MENTOR_DATA.staff.email}`} className="btn btn-primary-premium rounded-pill px-3 py-2">
-                   <span className="material-symbols-rounded fs-6 me-2">mail</span> Message
+                <a href={`mailto:${mentorData.staff.email}`} className="btn btn-primary-premium rounded-pill px-3 py-2">
+                  <span className="material-symbols-rounded fs-6 me-2">mail</span> Message
                 </a>
-                <a href={`tel:${MENTOR_DATA.staff.phone}`} className="btn btn-light-outline rounded-pill px-3 py-2">
-                   <span className="material-symbols-rounded fs-6 me-2">call</span> Call
+                <a href={`tel:${mentorData.staff.phone}`} className="btn btn-light-outline rounded-pill px-3 py-2">
+                  <span className="material-symbols-rounded fs-6 me-2">call</span> Call
                 </a>
               </div>
 
@@ -63,11 +56,11 @@ export default function StudentMentorPage() {
 
               <div className="text-start mt-4">
                 <label className="extra-small text-uppercase fw-bold text-muted ls-1">Bio</label>
-                <p className="small text-secondary mb-3">{MENTOR_DATA.staff.description}</p>
-                
+                <p className="small text-secondary mb-3">{mentorData.staff.description}</p>
+
                 <div className="d-flex align-items-center p-2 bg-light rounded-3 mb-2">
                   <span className="material-symbols-rounded text-primary me-3">verified</span>
-                  <div className="small fw-bold text-dark">Assigned: {MENTOR_DATA.assignment.fromDate}</div>
+                  <div className="small fw-bold text-dark">Assigned: {new Date(mentorData.assignment.fromDate).toLocaleDateString()}</div>
                 </div>
               </div>
             </div>
@@ -81,7 +74,7 @@ export default function StudentMentorPage() {
               <span className="material-symbols-rounded text-primary me-2">analytics</span>
               Mentoring Insights
             </h5>
-            
+
             <div className="row g-3 mb-4">
               <div className="col-md-6">
                 <div className="insight-box p-3 rounded-4" style={{ background: '#eef2ff' }}>
@@ -91,7 +84,7 @@ export default function StudentMentorPage() {
                     </div>
                     <div>
                       <div className="extra-small text-muted text-uppercase fw-bold">Stress Level</div>
-                      <div className="fw-bold text-dark fs-5">{MENTOR_DATA.latestSession.stressLevel}</div>
+                      <div className="fw-bold text-dark fs-5">{mentorData.latestSession.stressLevel}</div>
                     </div>
                   </div>
                 </div>
@@ -104,7 +97,7 @@ export default function StudentMentorPage() {
                     </div>
                     <div>
                       <div className="extra-small text-muted text-uppercase fw-bold">Learner Type</div>
-                      <div className="fw-bold text-dark fs-5">{MENTOR_DATA.latestSession.learnerType}</div>
+                      <div className="fw-bold text-dark fs-5">{mentorData.latestSession.learnerType}</div>
                     </div>
                   </div>
                 </div>
@@ -112,26 +105,28 @@ export default function StudentMentorPage() {
             </div>
 
             <div className="session-detail-card p-4 rounded-4 border bg-white shadow-xs">
-               <div className="d-flex justify-content-between align-items-start mb-3">
-                  <div>
-                    <span className="badge bg-primary-soft text-primary mb-2">LATEST SESSION</span>
-                    <h6 className="fw-bold mb-0">{MENTOR_DATA.latestSession.agenda}</h6>
+              <div className="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <span className="badge bg-primary-soft text-primary mb-2">LATEST SESSION</span>
+                  <h6 className="fw-bold mb-0">{mentorData.latestSession.agenda}</h6>
+                </div>
+                <div className="text-end">
+                  <div className="small fw-bold text-dark">
+                    {mentorData.latestSession.date ? new Date(mentorData.latestSession.date).toLocaleDateString() : 'N/A'}
                   </div>
-                  <div className="text-end">
-                    <div className="small fw-bold text-dark">{MENTOR_DATA.latestSession.date}</div>
-                    <div className="extra-small text-success fw-bold">● {MENTOR_DATA.latestSession.attendance}</div>
-                  </div>
-               </div>
-               
-               <div className="p-3 bg-light rounded-3 mb-3 border-start border-4 border-primary">
-                  <label className="extra-small fw-bold text-muted text-uppercase mb-1 d-block">Issues Discussed</label>
-                  <p className="small text-dark mb-0 italic">{MENTOR_DATA.latestSession.issues}</p>
-               </div>
+                  <div className="extra-small text-success fw-bold">● {mentorData.latestSession.attendance}</div>
+                </div>
+              </div>
 
-               <div className="mt-3">
-                  <label className="extra-small fw-bold text-muted text-uppercase mb-1 d-block">Mentor's Remark</label>
-                  <p className="small text-secondary mb-0">{MENTOR_DATA.latestSession.staffOpinion}</p>
-               </div>
+              <div className="p-3 bg-light rounded-3 mb-3 border-start border-4 border-primary">
+                <label className="extra-small fw-bold text-muted text-uppercase mb-1 d-block">Issues Discussed</label>
+                <p className="small text-dark mb-0 italic">{mentorData.latestSession.issues}</p>
+              </div>
+
+              <div className="mt-3">
+                <label className="extra-small fw-bold text-muted text-uppercase mb-1 d-block">Mentor's Remark</label>
+                <p className="small text-secondary mb-0">{mentorData.latestSession.staffOpinion}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -139,3 +134,4 @@ export default function StudentMentorPage() {
     </div>
   );
 }
+

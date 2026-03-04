@@ -1,21 +1,31 @@
 "use client";
-import React, { useEffect } from 'react';
-
-// Records mapped to StudentMentoring Table
-const SESSIONS_HISTORY = [
-  { id: 1, date: "2025-12-10", mentor: "Dr. Rajesh Kumar", agenda: "Semester Project Review", status: "Present", stress: "Low", learner: "Fast" },
-  { id: 2, date: "2025-11-15", mentor: "Dr. Rajesh Kumar", agenda: "Exam Preparation", status: "Present", stress: "Moderate", learner: "Fast" },
-  { id: 3, date: "2025-10-20", mentor: "Dr. Rajesh Kumar", agenda: "Skill Development", status: "Present", stress: "Low", learner: "Kinesthetic" },
-  { id: 4, date: "2025-09-05", mentor: "Dr. Rajesh Kumar", agenda: "Attendance Shortage Warning", status: "Absent", stress: "High", learner: "Slow" },
-  { id: 6, date: "2025-05-20", mentor: "Prof. Anita Sharma", agenda: "Previous Sem Backlog", status: "Present", stress: "High", learner: "Auditory" },
-  { id: 9, date: "2025-02-15", mentor: "Prof. Anita Sharma", agenda: "Internship Discussion", status: "Present", stress: "Low", learner: "Kinesthetic" },
-];
+import React, { useEffect, useState } from 'react';
 
 export default function MeetingHistoryPage() {
-  
+  const [sessionsHistory, setSessionsHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     require("bootstrap/dist/js/bootstrap.bundle.min.js");
+    fetch('/api/student/mentoring/history')
+      .then(res => res.json())
+      .then(data => {
+        if (data.sessions) {
+          setSessionsHistory(data.sessions);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
+
+  const totalSessions = sessionsHistory.length;
+  const attendedSessions = sessionsHistory.filter(s => s.status === 'Present').length;
+  const absentSessions = sessionsHistory.filter(s => s.status === 'Absent').length;
+
+  if (loading) return <div className="p-5 text-center">Loading mentoring history...</div>;
 
   return (
     <div className="container-fluid py-4 animate-fade-in">
@@ -27,20 +37,20 @@ export default function MeetingHistoryPage() {
         </div>
         <div className="col-md-6 text-md-end mt-3">
           <div className="d-inline-flex gap-3">
-             <div className="text-center">
-                <div className="fw-bold fs-4 text-primary">06</div>
-                <div className="extra-small text-muted text-uppercase fw-bold">Total</div>
-             </div>
-             <div className="vr opacity-25"></div>
-             <div className="text-center">
-                <div className="fw-bold fs-4 text-success">05</div>
-                <div className="extra-small text-muted text-uppercase fw-bold">Attended</div>
-             </div>
-             <div className="vr opacity-25"></div>
-             <div className="text-center">
-                <div className="fw-bold fs-4 text-danger">01</div>
-                <div className="extra-small text-muted text-uppercase fw-bold">Absent</div>
-             </div>
+            <div className="text-center">
+              <div className="fw-bold fs-4 text-primary">{totalSessions.toString().padStart(2, '0')}</div>
+              <div className="extra-small text-muted text-uppercase fw-bold">Total</div>
+            </div>
+            <div className="vr opacity-25"></div>
+            <div className="text-center">
+              <div className="fw-bold fs-4 text-success">{attendedSessions.toString().padStart(2, '0')}</div>
+              <div className="extra-small text-muted text-uppercase fw-bold">Attended</div>
+            </div>
+            <div className="vr opacity-25"></div>
+            <div className="text-center">
+              <div className="fw-bold fs-4 text-danger">{absentSessions.toString().padStart(2, '0')}</div>
+              <div className="extra-small text-muted text-uppercase fw-bold">Absent</div>
+            </div>
           </div>
         </div>
       </div>
@@ -59,51 +69,57 @@ export default function MeetingHistoryPage() {
               </tr>
             </thead>
             <tbody>
-              {SESSIONS_HISTORY.map((session) => (
-                <tr key={session.id} className="border-bottom">
-                  <td className="ps-4">
-                    <div className="fw-bold text-dark">
-                      {new Date(session.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </div>
-                    <div className="extra-small text-muted">Sess #{session.id}</div>
-                  </td>
-                  <td>
-                    <div className="d-flex align-items-center">
-                      <div className="avatar-sm-circle me-2 bg-primary-soft text-primary fw-bold">
-                        {session.mentor.split(' ').filter(n => !n.includes('.')).map(n => n[0]).join('')}
-                      </div>
-                      <span className="small fw-semibold">{session.mentor}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="small text-dark fw-medium text-truncate" style={{ maxWidth: '250px' }}>
-                      {session.agenda}
-                    </div>
-                  </td>
-                  <td className="text-center">
-                    <span className={`badge rounded-pill ${session.status === 'Present' ? 'bg-success-soft' : 'bg-danger-soft'}`}>
-                      {session.status}
-                    </span>
-                  </td>
-                  <td className="pe-4 text-center">
-                    <div className="d-flex justify-content-center gap-1">
-                      <span className="badge-outline-pill">{session.stress}</span>
-                      <span className="badge-outline-pill">{session.learner}</span>
-                    </div>
-                  </td>
+              {sessionsHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-4 text-muted">No sessions found.</td>
                 </tr>
-              ))}
+              ) : (
+                sessionsHistory.map((session: any) => (
+                  <tr key={session.id} className="border-bottom">
+                    <td className="ps-4">
+                      <div className="fw-bold text-dark">
+                        {session.date ? new Date(session.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </div>
+                      <div className="extra-small text-muted">Sess #{session.id}</div>
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center">
+                        <div className="avatar-sm-circle me-2 bg-primary-soft text-primary fw-bold">
+                          {session.mentor.split(' ').filter((n: string) => !n.includes('.')).map((n: string) => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <span className="small fw-semibold">{session.mentor}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="small text-dark fw-medium text-truncate" style={{ maxWidth: '250px' }}>
+                        {session.agenda}
+                      </div>
+                    </td>
+                    <td className="text-center">
+                      <span className={`badge rounded-pill ${session.status === 'Present' ? 'bg-success-soft' : session.status === 'Absent' ? 'bg-danger-soft' : 'bg-secondary'}`}>
+                        {session.status}
+                      </span>
+                    </td>
+                    <td className="pe-4 text-center">
+                      <div className="d-flex justify-content-center gap-1">
+                        <span className="badge-outline-pill">{session.stress}</span>
+                        <span className="badge-outline-pill">{session.learner}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Simplified Footer */}
         <div className="p-3 bg-light d-flex justify-content-between align-items-center">
-          <div className="extra-small text-muted fw-bold">Showing {SESSIONS_HISTORY.length} sessions</div>
+          <div className="extra-small text-muted fw-bold">Showing {sessionsHistory.length} sessions</div>
           <div className="pagination-minimal d-flex gap-2">
-             <button className="btn btn-sm btn-white border disabled"><span className="material-symbols-rounded fs-6">chevron_left</span></button>
-             <button className="btn btn-sm btn-primary shadow-sm px-3">1</button>
-             <button className="btn btn-sm btn-white border disabled"><span className="material-symbols-rounded fs-6">chevron_right</span></button>
+            <button className="btn btn-sm btn-white border disabled"><span className="material-symbols-rounded fs-6">chevron_left</span></button>
+            <button className="btn btn-sm btn-primary shadow-sm px-3">1</button>
+            <button className="btn btn-sm btn-white border disabled"><span className="material-symbols-rounded fs-6">chevron_right</span></button>
           </div>
         </div>
       </div>

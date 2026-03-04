@@ -7,7 +7,7 @@ export default function StudentNavbar() {
   const [showConfig] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [mounted, setMounted] = useState(false);
-  
+
   // Local state for configuration toggles
   const [config, setConfig] = useState({
     darkMode: false,
@@ -16,9 +16,24 @@ export default function StudentNavbar() {
     language: 'English'
   });
 
+  const [userData, setUserData] = useState({
+    studentName: 'Loading...',
+    enrollmentNo: '...',
+    email: '...'
+  });
+
   useEffect(() => {
     require("bootstrap/dist/js/bootstrap.bundle.min.js");
     setMounted(true);
+
+    fetch('/api/student/layout')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setUserData(data);
+        }
+      })
+      .catch(err => console.error(err));
   }, []);
 
   const toggleConfig = (key: keyof typeof config) => {
@@ -29,7 +44,7 @@ export default function StudentNavbar() {
 
   return (
     <>
-      <motion.nav 
+      <motion.nav
         className={`navbar navbar-expand-lg fixed-top ${styles.premiumNav}`}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -46,15 +61,15 @@ export default function StudentNavbar() {
               <span className="material-symbols-rounded text-white fs-4 me-2">school</span>
               <h5 className="fw-bold text-white mb-0">Student Portal</h5>
             </motion.div>
-           
+
           </div>
 
           {/* Right Section */}
           <div className="d-flex align-items-center gap-3">
-          
+
             {/* Profile Dropdown */}
             <div className="dropdown">
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
                 className={`btn profile-pill dropdown-toggle d-flex align-items-center gap-3 border-1 rounded-5 p-1`}
@@ -63,8 +78,8 @@ export default function StudentNavbar() {
                 data-bs-toggle="dropdown"
               >
                 <div className="text-end d-none d-md-block">
-                  <div className="fw-bold text-dark small">Amit Patel</div>
-                  <div className="text-muted extra-small">2024-ENG-001</div>
+                  <div className="fw-bold text-dark small">{userData.studentName}</div>
+                  <div className="text-muted extra-small">{userData.enrollmentNo}</div>
                 </div>
                 <div className={styles.avatarCirclePremium}>
                   <span className="material-symbols-rounded">account_circle</span>
@@ -72,7 +87,7 @@ export default function StudentNavbar() {
                 </div>
               </motion.button>
 
-              <motion.ul 
+              <motion.ul
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
@@ -80,10 +95,12 @@ export default function StudentNavbar() {
               >
                 <li className="px-4 py-3 border-bottom mb-2">
                   <div className="d-flex align-items-center gap-3">
-                    <div className={styles.avatarCircleLarge}>A</div>
+                    <div className={styles.avatarCircleLarge}>
+                      {userData.studentName !== 'Loading...' ? userData.studentName.charAt(0) : 'A'}
+                    </div>
                     <div>
-                      <div className="fw-bold small text-dark">Amit Patel</div>
-                      <div className="text-muted extra-small">amit.patel@student.com</div>
+                      <div className="fw-bold small text-dark">{userData.studentName}</div>
+                      <div className="text-muted extra-small">{userData.email}</div>
                     </div>
                   </div>
                 </li>
@@ -94,12 +111,12 @@ export default function StudentNavbar() {
                   </a>
                 </li>
                 <li>
-                  
+
                 </li>
-               
+
                 <li><hr className="dropdown-divider" /></li>
                 <li>
-                  <a className="dropdown-item d-flex align-items-center gap-3 text-danger fw-bold" href="/auth/login">
+                  <a className="dropdown-item d-flex align-items-center gap-3 text-danger fw-bold" href="/api/auth/logout">
                     <span className="material-symbols-rounded fs-5">logout</span>
                     <span>Sign Out</span>
                   </a>
@@ -111,7 +128,7 @@ export default function StudentNavbar() {
       </motion.nav>
 
       {/* --- SYSTEM CONFIG MODAL --- */}
-    
+
     </>
   );
 }

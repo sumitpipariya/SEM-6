@@ -79,3 +79,16 @@ CREATE TABLE StudentMentoring (
 
     FOREIGN KEY (StudentMentorID) REFERENCES StudentMentor(StudentMentorID)
 );
+
+
+USE SMMS_DATABASE;
+DESCRIBE User;
+
+select * from student;
+select * from staff;
+select * from studentmentor;
+select * from studentmentoring ;
+select * from user;
+
+show tables;
+

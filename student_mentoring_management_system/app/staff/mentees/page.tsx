@@ -3,21 +3,22 @@ import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import styles from '../staff.module.css';
 
-const initialMentees = [
-    { id: 101, name: "John Doe", roll: "21CS001", email: "john@univ.edu", stress: "Low", type: "Fast Learner", dept: "CS Eng" },
-    { id: 102, name: "Jane Smith", roll: "21CS015", email: "jane@univ.edu", stress: "High", type: "Average", dept: "CS Eng" },
-];
-
 export default function MenteesPage() {
-    const [mentees, setMentees] = useState(initialMentees);
+    const [mentees, setMentees] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const saved = JSON.parse(localStorage.getItem('custom_mentees') || '[]');
-        const filteredInitial = initialMentees.filter(initial =>
-            !saved.some((s: any) => s.id === initial.id)
-        );
-        setMentees([...filteredInitial, ...saved]);
+        fetch('/api/staff/mentees')
+            .then(res => res.json())
+            .then(data => {
+                setMentees(data.mentees || []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to load mentees:", err);
+                setLoading(false);
+            });
     }, []);
 
     const filteredMentees = mentees.filter(m =>
@@ -27,6 +28,15 @@ export default function MenteesPage() {
 
     // Stats for the header
     const highStressCount = mentees.filter(m => m.stress === 'High').length;
+
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center py-5">
+                <div className="spinner-border text-primary" role="status"></div>
+                <span className="ms-3 fw-bold text-muted">Loading mentees...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="container-fluid">
@@ -100,7 +110,7 @@ export default function MenteesPage() {
                                     </td>
                                     <td>
                                         <span className="badge bg-light text-muted border-0 fw-bold px-3 py-2 rounded-pill" style={{ fontSize: '10px', letterSpacing: '0.5px' }}>
-                                            {s.type.toUpperCase()}
+                                            {(s.type || 'N/A').toUpperCase()}
                                         </span>
                                     </td>
                                     <td>

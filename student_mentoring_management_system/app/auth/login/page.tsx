@@ -6,28 +6,39 @@ import styles from './login.module.css';
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
 
     // Logic: State to track which role is selected
     const [role, setRole] = useState('student');
 
     const router = useRouter();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMsg('');
 
-        // Logic: Simulate API call then redirect based on 'role' state
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, role })
+            });
 
-            if (role === 'student') {
-                router.push('/student/dashboard');
-            } else if (role === 'staff') {
-                router.push('/staff/dashboard');
-            } else if (role === 'admin') {
-                router.push('/admin/dashboard');
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                router.push(data.redirect);
+            } else {
+                setErrorMsg(data.error || 'Login failed');
+                setLoading(false);
             }
-        }, 1500);
+        } catch (err) {
+            setErrorMsg('An error occurred. Please try again.');
+            setLoading(false);
+        }
     };
 
     return (
@@ -87,6 +98,13 @@ export default function LoginPage() {
                     </div>
 
                     <form onSubmit={handleLogin}>
+                        {errorMsg && (
+                            <div className="alert alert-danger py-2 small fw-bold mb-4 border-0 shadow-sm d-flex align-items-center gap-2">
+                                <span className="material-symbols-rounded fs-5">error</span>
+                                {errorMsg}
+                            </div>
+                        )}
+
                         <div className="mb-4">
                             <label className={styles.fieldLabel}>Username</label>
                             <div className={styles.inputGroupCustom}>
@@ -96,6 +114,8 @@ export default function LoginPage() {
                                     className={styles.formControlCustom}
                                     placeholder="Enter Your Username.."
                                     required
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
                                 />
                             </div>
                         </div>
@@ -112,6 +132,8 @@ export default function LoginPage() {
                                     className={styles.formControlCustom}
                                     placeholder="••••••••"
                                     required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                 />
                                 <button
                                     type="button"

@@ -6,33 +6,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styles from '@/components/student/Student.module.css';
 
 const menuItems = [
-  { 
-    name: 'Dashboard', 
-    icon: 'dashboard', 
+  {
+    name: 'Dashboard',
+    icon: 'dashboard',
     href: '/student/dashboard',
     gradient: 'from-blue-500 to-indigo-600'
   },
-  { 
-    name: 'My Mentor', 
-    icon: 'person_search', 
+  {
+    name: 'My Mentor',
+    icon: 'person_search',
     href: '/student/mentor',
     gradient: 'from-purple-500 to-pink-600'
   },
-  { 
-    name: 'Meeting History', 
-    icon: 'calendar_month', 
+  {
+    name: 'Meeting History',
+    icon: 'calendar_month',
     href: '/student/mentoring/history',
     gradient: 'from-amber-500 to-orange-600'
   },
-  { 
-    name: 'Feedback', 
-    icon: 'feedback', 
-    href: '/student/feedback',
-    gradient: 'from-green-500 to-emerald-600'
-  },
-  { 
-    name: 'Profile', 
-    icon: 'account_circle', 
+  {
+    name: 'Profile',
+    icon: 'account_circle',
     href: '/student/profile',
     gradient: 'from-cyan-500 to-teal-600'
   },
@@ -41,13 +35,22 @@ const menuItems = [
 export default function StudentSidebar() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [mentorName, setMentorName] = useState("Loading...");
 
   useEffect(() => {
     setMounted(true);
+    fetch('/api/student/layout')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setMentorName(data.mentorName);
+        }
+      })
+      .catch(err => console.error(err));
   }, []);
 
   return (
-    <motion.div 
+    <motion.div
       className={styles.sidebarContainer}
       initial={{ x: -300 }}
       animate={{ x: 0 }}
@@ -108,15 +111,17 @@ export default function StudentSidebar() {
       <div className={styles.mentorCard}>
         <div className={styles.mentorHeader}>
           <div className={styles.avatarWrapper}>
-            <div className={styles.avatarInitials}>RK</div>
+            <div className={styles.avatarInitials}>
+              {mentorName !== 'Loading...' && mentorName !== 'Unassigned' ? mentorName.split(' ').filter((n: string) => !n.includes('.')).map((n: string) => n[0]).slice(0, 2).join('') : 'M'}
+            </div>
             <div className={styles.onlineStatus}></div>
           </div>
           <div className={styles.mentorInfo}>
-            <p className={styles.mentorName}>Dr. Rajesh Kumar</p>
+            <p className={styles.mentorName}>{mentorName}</p>
             <p className={styles.mentorRole}>Primary Mentor</p>
           </div>
         </div>
-        
+
         <Link href="/student/mentor" className={styles.contactButtonLink}>
           <button className={styles.contactButton}>
             <span className="material-symbols-rounded me-2 fs-7">chat</span>

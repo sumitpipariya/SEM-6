@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function AdminReportsPage() {
   const [stats, setStats] = useState({
@@ -9,21 +11,95 @@ export default function AdminReportsPage() {
     avgStressLevel: 'Low'
   });
 
+  const [mentorData, setMentorData] = useState<any[]>([]);
+  const [progressData, setProgressData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [reportType, setReportType] = useState('mentor-wise');
 
   useEffect(() => {
-    // Sync stats from our Storage keys
-    const staff = JSON.parse(localStorage.getItem('STAFF_STORAGE') || '[]');
-    const students = JSON.parse(localStorage.getItem('STUDENT_STORAGE') || '[]');
-    const assigns = JSON.parse(localStorage.getItem('ASSIGNMENT_STORAGE') || '[]');
-    
-    setStats({
-      totalMentors: staff.length,
-      totalMentees: students.length,
-      totalSessions: assigns.length, // Placeholder for actual mentoring sessions
-      avgStressLevel: 'Medium'
-    });
+    fetch('/api/admin/reports')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setStats({
+            totalMentors: data.totalMentors,
+            totalMentees: data.totalMentees,
+            totalSessions: data.totalSessions,
+            avgStressLevel: data.avgStressLevel || 'Not enough data'
+          });
+          setMentorData(data.mentorWise || []);
+          setProgressData(data.progress || []);
+        }
+      })
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
   }, []);
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const tableTitle = reportType === 'mentor-wise' ? 'Mentor-wise Report' : 'Progress Analytics Report';
+
+    doc.setFontSize(18);
+    // Setting blue title color
+    doc.setTextColor(37, 99, 235);
+    doc.text(tableTitle, 14, 22);
+
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text('Student Mentoring Management System Analytics', 14, 30);
+
+    if (reportType === 'mentor-wise') {
+      const tableColumn = ["ID", "Mentor Name", "Department", "Assigned Mentees", "Completion %", "Last Activity"];
+      const tableRows: any[] = [];
+
+      mentorData.forEach(mentor => {
+        const rowData = [
+          mentor.id,
+          mentor.name,
+          mentor.department,
+          mentor.menteeCount,
+          `${mentor.completedPercentage}%`,
+          mentor.lastActivity
+        ];
+        tableRows.push(rowData);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 38,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229] }
+      });
+    } else {
+      const tableColumn = ["Enrollment", "Student Name", "Mentor Name", "Learner Type", "Stress Level", "Progress %", "Last Activity"];
+      const tableRows: any[] = [];
+
+      progressData.forEach(student => {
+        const rowData = [
+          student.enrollmentNo,
+          student.name,
+          student.mentorName,
+          student.learnerType,
+          student.stressLevel,
+          `${student.progressPercentage}%`,
+          student.lastActivity
+        ];
+        tableRows.push(rowData);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 38,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229] }
+      });
+    }
+
+    doc.save(`${reportType}-report.pdf`);
+  };
 
   return (
     <div className="container-fluid py-4 animate-fade-in">
@@ -56,20 +132,24 @@ export default function AdminReportsPage() {
       <div className="card-main border-0 shadow-sm bg-white overflow-hidden">
         <div className="p-4 border-bottom bg-light d-flex justify-content-between align-items-center">
           <div className="d-flex gap-3">
-            <button 
+            <button
               className={`btn rounded-pill px-4 fw-bold ${reportType === 'mentor-wise' ? 'btn-indigo-glow' : 'btn-light border'}`}
               onClick={() => setReportType('mentor-wise')}
             >
               Mentor-wise Report
             </button>
-            <button 
+            <button
               className={`btn rounded-pill px-4 fw-bold ${reportType === 'progress' ? 'btn-indigo-glow' : 'btn-light border'}`}
               onClick={() => setReportType('progress')}
             >
               Progress Analytics
             </button>
           </div>
-          <button className="btn btn-outline-dark rounded-pill fw-bold px-4">
+          <button
+            className="btn btn-outline-dark rounded-pill fw-bold px-4"
+            onClick={handleExportPDF}
+            disabled={loading}
+          >
             <span className="material-symbols-rounded align-middle me-2">download</span> Export PDF
           </button>
         </div>
@@ -86,45 +166,61 @@ export default function AdminReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {/* This would map through your Session & Assignment Data */}
-              <tr className="border-bottom">
-                <td className="ps-4">
-                  <div className="fw-bold text-dark">Dr. Rajesh Kumar</div>
-                  <div className="extra-small text-muted">ID: 101</div>
-                </td>
-                <td>
-                  <div className="small fw-medium">Assigned to: 5 Mentees</div>
-                  <div className="extra-small text-muted">IT Department</div>
-                </td>
-                <td>
-                  <span className="badge bg-success-soft text-success rounded-pill px-3">Completed 90%</span>
-                </td>
-                <td className="small text-secondary">24 Jan 2026</td>
-                <td className="pe-4 text-end">
-                   <div className="progress" style={{height: '6px', width: '100px', marginLeft: 'auto'}}>
-                      <div className="progress-bar bg-indigo" style={{width: '85%'}}></div>
-                   </div>
-                </td>
-              </tr>
-              <tr className="border-bottom">
-                <td className="ps-4">
-                  <div className="fw-bold text-dark">Jane Smith</div>
-                  <div className="extra-small text-muted">ENR2026002</div>
-                </td>
-                <td>
-                  <div className="small fw-medium">Learner Type: Fast</div>
-                  <div className="extra-small text-muted">Mentor: Prof. Anita</div>
-                </td>
-                <td>
-                  <span className="badge bg-warning-soft text-warning rounded-pill px-3">Stress: Medium</span>
-                </td>
-                <td className="small text-secondary">18 Jan 2026</td>
-                <td className="pe-4 text-end">
-                   <div className="progress" style={{height: '6px', width: '100px', marginLeft: 'auto'}}>
-                      <div className="progress-bar bg-warning" style={{width: '40%'}}></div>
-                   </div>
-                </td>
-              </tr>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-5">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : reportType === 'mentor-wise' ? (
+                mentorData.map((mentor, index) => (
+                  <tr key={index} className="border-bottom">
+                    <td className="ps-4">
+                      <div className="fw-bold text-dark">{mentor.name}</div>
+                      <div className="extra-small text-muted">ID: {mentor.id}</div>
+                    </td>
+                    <td>
+                      <div className="small fw-medium">Assigned to: {mentor.menteeCount} Mentees</div>
+                      <div className="extra-small text-muted">{mentor.department}</div>
+                    </td>
+                    <td>
+                      <span className="badge bg-success-soft text-success rounded-pill px-3">Completed {mentor.completedPercentage}%</span>
+                    </td>
+                    <td className="small text-secondary">{mentor.lastActivity}</td>
+                    <td className="pe-4 text-end">
+                      <div className="progress" style={{ height: '6px', width: '100px', marginLeft: 'auto' }}>
+                        <div className="progress-bar bg-indigo" style={{ width: `${mentor.completedPercentage}%` }}></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                progressData.map((student, index) => (
+                  <tr key={index} className="border-bottom">
+                    <td className="ps-4">
+                      <div className="fw-bold text-dark">{student.name}</div>
+                      <div className="extra-small text-muted">{student.enrollmentNo}</div>
+                    </td>
+                    <td>
+                      <div className="small fw-medium">Learner Type: {student.learnerType}</div>
+                      <div className="extra-small text-muted">Mentor: {student.mentorName}</div>
+                    </td>
+                    <td>
+                      <span className={`badge rounded-pill px-3 ${student.stressLevel === 'High' ? 'bg-danger-soft text-danger' : student.stressLevel === 'Medium' ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'}`}>
+                        Stress: {student.stressLevel}
+                      </span>
+                    </td>
+                    <td className="small text-secondary">{student.lastActivity}</td>
+                    <td className="pe-4 text-end">
+                      <div className="progress" style={{ height: '6px', width: '100px', marginLeft: 'auto' }}>
+                        <div className={`progress-bar ${student.progressPercentage > 50 ? 'bg-success' : 'bg-warning'}`} style={{ width: `${student.progressPercentage}%` }}></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -135,6 +231,7 @@ export default function AdminReportsPage() {
         .bg-blue-soft { background: #eff6ff; color: #2563eb; }
         .bg-success-soft { background: #ecfdf5; color: #10b981; }
         .bg-warning-soft { background: #fffbeb; color: #f59e0b; }
+        .bg-danger-soft { background: #fef2f2; color: #ef4444; }
         
         .avatar-md-circle {
           width: 48px;

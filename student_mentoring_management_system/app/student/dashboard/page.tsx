@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,22 +27,44 @@ ChartJS.register(
 
 export default function StudentDashboard() {
   const [showAgenda, setShowAgenda] = useState(false);
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/student/dashboard')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setDashboardData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div className="p-5 text-center">Loading dashboard...</div>;
+  if (!dashboardData) return <div className="p-5 text-center text-danger">Failed to load data</div>;
+
+  const nextDateFormatted = dashboardData.nextSessionDate
+    ? new Date(dashboardData.nextSessionDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+    : 'Not Scheduled';
 
   const metrics = [
-    { label: 'Attendance', value: '94%', icon: 'task_alt', color: '#10b981', trend: 'Above avg' },
-    { label: 'Stress Level', value: 'Moderate', icon: 'psychology', color: '#6366f1', trend: 'Latest' },
-    { label: 'Learner Type', value: 'Visual', icon: 'visibility', color: '#f59e0b', trend: 'Profile' },
-    { label: 'Next Session', value: '24 Oct', icon: 'event_upcoming', color: '#3b82f6', trend: 'Scheduled' },
+    { label: 'Attendance', value: `${dashboardData.attendancePercentage}%`, icon: 'task_alt', color: '#10b981', trend: 'Average' },
+    { label: 'Stress Level', value: dashboardData.stressLevel, icon: 'psychology', color: '#6366f1', trend: 'Latest' },
+    { label: 'Learner Type', value: dashboardData.learnerType, icon: 'visibility', color: '#f59e0b', trend: 'Profile' },
+    { label: 'Next Session', value: nextDateFormatted, icon: 'event_upcoming', color: '#3b82f6', trend: 'Scheduled' },
   ];
 
   // Chart Data Configuration
   const chartData = {
-    labels: ['Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    labels: dashboardData.chartData?.labels || ['Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
       {
         fill: true,
         label: 'Attendance %',
-        data: [85, 88, 92, 94, 94],
+        data: dashboardData.chartData?.data || [0, 0, 0, 0, 0],
         borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         tension: 0.4,
@@ -65,56 +87,6 @@ export default function StudentDashboard() {
 
   return (
     <div className="container-fluid py-4 animate-fade-in">
-      
-      {/* 1. AGENDA POPUP (MODAL) */}
-      {showAgenda && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center px-3" style={{ zIndex: 1060, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }}>
-          <div className="card-main border-0 shadow-lg bg-white overflow-hidden animate-zoom-in" style={{ maxWidth: '550px', width: '100%' }}>
-            <div className="p-4 bg-indigo text-white d-flex justify-content-between align-items-center">
-              <div className="d-flex align-items-center gap-2">
-                <span className="material-symbols-rounded">description</span>
-                <h5 className="fw-bold mb-0">Meeting Agenda</h5>
-              </div>
-              <button className="btn btn-white-glass btn-sm rounded-circle" onClick={() => setShowAgenda(false)}>
-                <span className="material-symbols-rounded fs-6">close</span>
-              </button>
-            </div>
-            <div className="p-4">
-              <div className="mb-4">
-                <label className="extra-small text-uppercase fw-bold text-muted ls-1 d-block mb-2">Subject</label>
-                <div className="p-3 bg-light rounded-4 fw-bold text-dark fs-5">Mid-Semester Performance Review</div>
-              </div>
-              <div className="row g-3 mb-4">
-                <div className="col-6">
-                  <div className="p-3 border rounded-4">
-                    <div className="extra-small text-muted fw-bold text-uppercase mb-1">Duration</div>
-                    <div className="fw-bold">45 Minutes</div>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="p-3 border rounded-4">
-                    <div className="extra-small text-muted fw-bold text-uppercase mb-1">Location</div>
-                    <div className="fw-bold">Cabin 402, Block B</div>
-                  </div>
-                </div>
-              </div>
-              <div className="mb-4">
-                <label className="extra-small text-uppercase fw-bold text-muted ls-1 d-block mb-2">Talking Points</label>
-                <ul className="list-unstyled d-flex flex-column gap-2 mb-0">
-                  {['Review of Internal Lab Exam scores', 'Project documentation status update', 'Discussion on elective subject selection', 'Addressing stress management queries'].map((item, i) => (
-                    <li key={i} className="d-flex gap-2 small text-secondary align-items-start">
-                      <span className="material-symbols-rounded text-indigo fs-6">check_circle</span> {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <button className="btn btn-indigo-glow w-100 py-3 rounded-pill fw-bold" onClick={() => setShowAgenda(false)}>
-                Acknowledge Agenda
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 2. Welcome Header */}
       <div className="d-flex align-items-center gap-4 mb-4">
@@ -172,18 +144,10 @@ export default function StudentDashboard() {
                   <div className="col-md-8">
                     <div className="d-flex align-items-center mb-3 text-indigo fw-bold">
                       <span className="material-symbols-rounded me-2">calendar_month</span>
-                      Thursday, 24th Oct • 10:30 AM
+                      {dashboardData.nextSessionDate ? new Date(dashboardData.nextSessionDate).toLocaleString('en-US', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Date not set'}
                     </div>
-                    <h4 className="fw-bold text-dark mb-2">Mid-Semester Review</h4>
-                    <p className="text-muted small mb-0">Discussion on lab internals and project documentation.</p>
-                  </div>
-                  <div className="col-md-4 text-md-end mt-3">
-                    <button 
-                      className="btn btn-indigo-glow px-4 py-2 rounded-pill fw-bold"
-                      onClick={() => setShowAgenda(true)}
-                    >
-                      View Agenda
-                    </button>
+                    <h4 className="fw-bold text-dark mb-2">{dashboardData.nextSessionAgenda}</h4>
+                    <p className="text-muted small mb-0">Upcoming discussion agenda point.</p>
                   </div>
                 </div>
               </div>
